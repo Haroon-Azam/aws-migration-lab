@@ -23,3 +23,9 @@ The app reads and writes to MySQL through its API.
 
 ## Cost
 $0
+
+## Security demo: SQL injection
+- Sent `1', (SELECT user())) -- ` as the amount in POST /transaction
+- The app pasted it straight into its SQL, so `SELECT user()` ran and saved the database username (`root@172.17.0.1`) as the description
+- Read it back with GET /transaction: one request leaked internal data with no password needed
+- Evidence: `docs/screenshots/phase1-sql-injection.png`
