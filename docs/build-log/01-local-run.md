@@ -29,3 +29,8 @@ $0
 - The app pasted it straight into its SQL, so `SELECT user()` ran and saved the database username (`root@172.17.0.1`) as the description
 - Read it back with GET /transaction: one request leaked internal data with no password needed
 - Evidence: `docs/screenshots/phase1-sql-injection.png`
+
+## Fix: parameterized query
+- Changed `addTransaction` to send SQL and values separately: `VALUES (?, ?)` with `[amount, desc]`
+- Re-ran the same attack: the text was stored as plain data and no command ran
+- Evidence: `docs/screenshots/phase1-sql-injection-fixed.png`

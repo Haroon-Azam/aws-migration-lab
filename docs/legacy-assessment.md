@@ -8,3 +8,5 @@ Findings from reviewing the app before migration. Each one will be addressed dur
 | 2 | SQL injection | `app-tier/TransactionService.js` | Attacker can read or change data | Use parameterized queries |
 | 3 | Single database connection, no reconnect | `app-tier/TransactionService.js` | App breaks during a database failover | Use a connection pool with retries |
 | 4 | Outdated dependencies (8 known vulnerabilities) | `app-tier/package.json` | Known security holes | Update packages, run `npm audit` |
+
+**Status update (2026-11-15):** problem #2, SQL injection, fixed before migration with a parameterized query and verified by re-running the attack.
