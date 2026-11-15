@@ -30,6 +30,11 @@ resource "aws_route_table" "onprem_public" {
     gateway_id = aws_internet_gateway.onprem.id
   }
 
+  # infra/migration adds a peering route to this table; don't remove it
+  lifecycle {
+    ignore_changes = [route]
+  }
+
   tags = { Name = "onprem-public-rt" }
 }
 

@@ -1,4 +1,4 @@
-# The bouncer: only my laptop can reach the app
+# The bouncer: my laptop can reach the API; the target app subnets can reach MySQL
 resource "aws_security_group" "legacy_server" {
   name        = "onprem-legacy-server-sg"
   description = "Legacy app server: API from my IP only"
@@ -10,6 +10,14 @@ resource "aws_security_group" "legacy_server" {
     to_port     = 4000
     protocol    = "tcp"
     cidr_blocks = [var.my_ip]
+  }
+
+  ingress {
+    description = "MySQL from target app subnets (DMS), over peering"
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["10.1.11.0/24", "10.1.12.0/24"]
   }
 
   egress {
