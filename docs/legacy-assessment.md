@@ -10,3 +10,5 @@ Findings from reviewing the app before migration. Each one will be addressed dur
 | 4 | Outdated dependencies (8 known vulnerabilities) | `app-tier/package.json` | Known security holes | Update packages, run `npm audit` |
 
 **Status update (2026-11-15):** problem #2, SQL injection, fixed before migration with a parameterized query and verified by re-running the attack.
+
+**Status update (2026-11-15):** problem #4, outdated dependencies, fixed with `npm audit fix` (8 vulnerabilities to 0) and re-tested.

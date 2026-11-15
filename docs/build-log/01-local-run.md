@@ -34,3 +34,9 @@ $0
 - Changed `addTransaction` to send SQL and values separately: `VALUES (?, ?)` with `[amount, desc]`
 - Re-ran the same attack: the text was stored as plain data and no command ran
 - Evidence: `docs/screenshots/phase1-sql-injection-fixed.png`
+
+## Fix: outdated dependencies
+- `npm audit` found 8 vulnerabilities (1 critical, 4 high), mostly in Express and its sub-packages
+- Ran `npm audit fix` (safe updates only, no `--force`, since that would jump major versions and could break the app)
+- Only `package-lock.json` changed: the fixed versions were still inside the ranges in `package.json`
+- Result: 0 vulnerabilities; restarted the app and re-tested health, read and write
