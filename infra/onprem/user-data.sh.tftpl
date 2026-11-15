@@ -1,0 +1,65 @@
+#!/bin/bash
+# Runs once, as root, the first time the server boots.
+# No "set -x", so the password is never written to the logs.
+set -euo pipefail
+exec > /var/log/legacy-setup.log 2>&1
+export HOME=/root
+
+echo "== 1. Installing Docker, Git and Node.js"
+dnf install -y docker git nodejs
+systemctl enable --now docker
+
+echo "== 2. Starting MySQL 8.0 in Docker (binary logging on, needed by DMS later)"
+docker run -d --name legacy-db --restart unless-stopped \
+  -e MYSQL_ROOT_PASSWORD='${db_password}' \
+  -e MYSQL_DATABASE=webappdb \
+  -p 3306:3306 \
+  mysql:8.0 \
+  --default-authentication-plugin=mysql_native_password \
+  --server-id=1 --log-bin=mysql-bin --binlog-format=ROW
+
+echo "== 3. Waiting for MySQL to accept connections"
+until docker exec legacy-db mysql -h127.0.0.1 -uroot -p'${db_password}' -e "SELECT 1" >/dev/null 2>&1; do
+  sleep 5
+done
+
+echo "== 4. Creating the table and seed data"
+docker exec legacy-db mysql -h127.0.0.1 -uroot -p'${db_password}' webappdb -e "CREATE TABLE IF NOT EXISTS transactions(id INT NOT NULL AUTO_INCREMENT, amount DECIMAL(10,2), description VARCHAR(100), PRIMARY KEY(id)); INSERT INTO transactions (amount, description) VALUES (400, 'groceries'), (25, 'coffee'), (10, 'tea');"
+
+echo "== 5. Downloading the app from GitHub"
+git clone ${repo_url} /opt/legacy
+cd /opt/legacy/app/app-tier
+
+echo "== 6. Writing DbConfig.js (the legacy way: password in a file)"
+cat > DbConfig.js <<EOF
+module.exports = Object.freeze({
+    DB_HOST : '127.0.0.1',
+    DB_USER : 'root',
+    DB_PWD : '${db_password}',
+    DB_DATABASE : 'webappdb'
+});
+EOF
+
+echo "== 7. Installing the app's packages"
+npm ci --omit=dev
+
+echo "== 8. Running the app as a service (restarts on crash or reboot)"
+cat > /etc/systemd/system/legacy-app.service <<EOF
+[Unit]
+Description=Legacy transactions API
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/legacy/app/app-tier
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now legacy-app
+echo "== Setup finished"
