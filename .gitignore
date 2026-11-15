@@ -1,0 +1,7 @@
+reference/
+node_modules/
+.DS_Store
+app/app-tier/DbConfig.js
+.terraform/
+*.tfstate*
+*.tfvars
