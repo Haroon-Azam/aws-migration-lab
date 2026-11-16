@@ -74,7 +74,7 @@ resource "aws_dms_replication_subnet_group" "main" {
   depends_on = [aws_iam_role_policy_attachment.dms_vpc]
 }
 
-# --- The replication server ---
+# --- The replication server (dms.t3.micro is not offered in ca-central-1) ---
 resource "aws_dms_replication_instance" "main" {
   replication_instance_id     = "mig-lab-dms"
   replication_instance_class  = "dms.t3.small"
@@ -106,6 +106,27 @@ resource "aws_dms_endpoint" "target" {
   port          = 3306
   username      = local.rds_creds["username"]
   password      = local.rds_creds["password"]
+}
+
+# --- The job: copy everything, then keep copying new changes ---
+resource "aws_dms_replication_task" "main" {
+  replication_task_id      = "legacy-to-rds"
+  migration_type           = "full-load-and-cdc"
+  replication_instance_arn = aws_dms_replication_instance.main.replication_instance_arn
+  source_endpoint_arn      = aws_dms_endpoint.source.endpoint_arn
+  target_endpoint_arn      = aws_dms_endpoint.target.endpoint_arn
+  start_replication_task   = false
+
+  # Which tables to copy: every table in the webappdb database
+  table_mappings = jsonencode({
+    rules = [{
+      "rule-type"      = "selection"
+      "rule-id"        = "1"
+      "rule-name"      = "include-webappdb"
+      "object-locator" = { "schema-name" = "webappdb", "table-name" = "%" }
+      "rule-action"    = "include"
+    }]
+  })
 }
 
 output "legacy_private_ip" {
