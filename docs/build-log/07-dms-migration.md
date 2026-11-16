@@ -33,3 +33,12 @@ Copy the legacy database into RDS and keep it in sync, so cutover needs only min
 
 ## Cost
 DMS about $0.04 an hour while running; destroyed at the end of the session
+
+## Teardown: what went wrong and how I fixed it
+| Problem | Cause | Fix |
+|---|---|---|
+| `infra/migration` destroy failed | The DMS task ended in a `failed` state while stopping, so Terraform stopped | Re-ran with `terraform destroy -refresh=false` |
+| `infra/target` destroy left one subnet and the VPC | I destroyed the next stack anyway; the still-running DMS server had a network interface in `app-a` | Finished the migration destroy first, then re-ran the target destroy (2 destroyed) |
+| Normal destroy would have failed again | Data sources tried to look up the on-prem VPC and RDS, which no longer existed | `-refresh=false` skips re-reading AWS and deletes what is in state |
+
+Lesson: when one destroy fails, stop and fix it before destroying anything that depends on it. Verified the cleanup with the CLI (no DMS instances, no RDS, only the default VPC).
