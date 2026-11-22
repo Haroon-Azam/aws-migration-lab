@@ -27,7 +27,7 @@ echo "== 4. Creating the table and seed data"
 docker exec legacy-db mysql -h127.0.0.1 -uroot -p'${db_password}' webappdb -e "CREATE TABLE IF NOT EXISTS transactions(id INT NOT NULL AUTO_INCREMENT, amount DECIMAL(10,2), description VARCHAR(100), PRIMARY KEY(id)); INSERT INTO transactions (amount, description) VALUES (400, 'groceries'), (25, 'coffee'), (10, 'tea');"
 
 echo "== 5. Downloading the app from GitHub"
-git clone ${repo_url} /opt/legacy
+git clone --branch legacy-v1 ${repo_url} /opt/legacy
 cd /opt/legacy/app/app-tier
 
 echo "== 6. Writing DbConfig.js (the legacy way: password in a file)"
