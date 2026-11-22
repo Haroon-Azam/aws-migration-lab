@@ -1,0 +1,50 @@
+#!/bin/bash
+# Runs once, as root, when each app server first boots.
+set -euo pipefail
+exec > /var/log/app-setup.log 2>&1
+export HOME=/root
+
+echo "== 1. Installing Git, Node.js, jq and the MySQL client"
+dnf install -y git nodejs jq mariadb105
+
+echo "== 2. Downloading the app from GitHub (latest main branch)"
+git clone ${repo_url} /opt/app
+cd /opt/app/app/app-tier
+npm ci --omit=dev
+
+echo "== 3. Reading the database credentials from Secrets Manager"
+SECRET=$(aws secretsmanager get-secret-value --region ${region} --secret-id '${secret_arn}' --query SecretString --output text)
+DB_USER=$(echo "$SECRET" | jq -r .username)
+DB_PASSWORD=$(echo "$SECRET" | jq -r .password)
+
+echo "== 4. Writing the settings file (readable by root only)"
+umask 077
+cat > /etc/transactions-api.env <<EOF
+DB_HOST=${db_host}
+DB_PORT=3306
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+DB_NAME=webappdb
+EOF
+
+echo "== 5. Running the app as a service"
+cat > /etc/systemd/system/transactions-api.service <<'UNIT'
+[Unit]
+Description=Transactions API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/app/app/app-tier
+EnvironmentFile=/etc/transactions-api.env
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now transactions-api
+echo "== Setup finished"
