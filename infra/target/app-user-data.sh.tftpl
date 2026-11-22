@@ -27,7 +27,10 @@ DB_PASSWORD=$DB_PASSWORD
 DB_NAME=webappdb
 EOF
 
-echo "== 5. Running the app as a service"
+echo "== 5. Making sure the table exists (schema as code; safe to run on every server)"
+MYSQL_PWD="$DB_PASSWORD" mysql -h "${db_host}" -u "$DB_USER" webappdb -e "CREATE TABLE IF NOT EXISTS transactions(id INT NOT NULL AUTO_INCREMENT, amount DECIMAL(10,2), description VARCHAR(100), PRIMARY KEY(id));"
+
+echo "== 6. Running the app as a service"
 cat > /etc/systemd/system/transactions-api.service <<'UNIT'
 [Unit]
 Description=Transactions API
