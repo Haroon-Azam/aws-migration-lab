@@ -26,7 +26,7 @@ Prove the target architecture recovers from failure without a human, while a scr
 | Database failover | ~13 s, 3 requests | Standby promoted, pool reconnected | None |
 
 ## Problems hit along the way
-- POST and GET returned 500. `journalctl -u transactions-api` showed `ER_NO_SUCH_TABLE`, and `/var/log/app-setup.log` showed the servers had run the old script. My PowerShell paste of the new template had failed silently. Fixed the file, applied, and instance refresh replaced both servers with zero downtime.
+- POST and GET returned 500. `journalctl -u transactions-api` showed `ER_NO_SUCH_TABLE`, and `/var/log/app-setup.log` showed the servers had run the old script. The first time, I had run the rewrite from `infra\migration`, so the new script landed in the wrong folder (found later and removed). Fixed the file, applied, and instance refresh replaced both servers with zero downtime.
 - `multi_az` was still false for the same reason (tfvars line never saved). Lesson: verify a file change with `Select-String` before applying.
 - A second reboot command was refused with `InvalidDBInstanceState` because the database was already rebooting.
 - The API's `AvailabilityZone` field lagged behind the real failover. RDS events are the source of truth.
